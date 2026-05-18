@@ -113,5 +113,5 @@ def predict_image(
 
 
 predict_image(
-    "penyakit jagung.jpg"
+    "test_image/mango_leaf_blidge.png"
 )
