@@ -1,3 +1,5 @@
+import os
+import random
 import tensorflow as tf
 import numpy as np
 from PIL import Image
@@ -84,34 +86,55 @@ def preprocess_image(image_path):
 
 
 def predict_image(
-    image_path,
-    top_k=3
+    image_path=None,
+    image_folder="test_image",
+    top_k=3,
+    num_images=3
 ):
 
-    img = preprocess_image(
-        image_path
-    )
+    if image_path is None:
+        images = [
+            os.path.join(image_folder, f)
+            for f in os.listdir(image_folder)
+            if os.path.isfile(os.path.join(image_folder, f))
+        ]
+        if not images:
+            raise FileNotFoundError(
+                f"No image files found in folder: {image_folder}"
+            )
+        if num_images > len(images):
+            raise ValueError(
+                f"Requested {num_images} images but only {len(images)} available in {image_folder}"
+            )
+        images = random.sample(images, num_images)
+    else:
+        images = [image_path]
 
-    pred = model.predict(
-        img,
-        verbose=0
-    )[0]
+    for image_path in images:
+        print(f"\nSelected image: {image_path}")
 
-    top_indices = pred.argsort()[-top_k:][::-1]
-
-    print("\nTOP PREDICTIONS\n")
-
-    for i in top_indices:
-
-        label = class_names[i]
-
-        confidence = pred[i]
-
-        print(
-            f"{label} : {confidence:.4f}"
+        img = preprocess_image(
+            image_path
         )
 
+        pred = model.predict(
+            img,
+            verbose=0
+        )[0]
 
-predict_image(
-    "test_image/mango_leaf_blidge.png"
-)
+        top_indices = pred.argsort()[-top_k:][::-1]
+
+        print("\nTOP PREDICTIONS\n")
+
+        for i in top_indices:
+
+            label = class_names[i]
+
+            confidence = pred[i]
+
+            print(
+                f"{label} : {confidence:.4f}"
+            )
+
+
+predict_image()
