@@ -184,7 +184,7 @@ app = FastAPI(
 
 
 model = tf.keras.models.load_model(
-    "best_model.keras",
+    "best_model_finetune.keras",
     custom_objects={
         "RandomBackground": RandomBackground
     },
