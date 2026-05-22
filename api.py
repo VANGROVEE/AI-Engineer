@@ -9,9 +9,7 @@ import google.generativeai as genai
 
 from fastapi import (
     FastAPI,
-    File,
-    HTTPException,
-    UploadFile
+    HTTPException
 )
 
 from fastapi.responses import JSONResponse
@@ -125,34 +123,34 @@ def build_prompt(
 ):
 
     return f"""
-Detected plant disease:
+Penyakit tanaman terdeteksi:
 {label}
 
-Provide:
+Berikan penjelasan dalam Bahasa Indonesia dengan format berikut:
 
-Disease:
-Short explanation about the disease.
+Penyakit:
+Penjelasan singkat mengenai penyakit.
 
-Causes:
-Main causes of the disease.
+Penyebab:
+Penyebab utama penyakit.
 
-Treatment:
-Step-by-step treatment recommendations.
+Penanganan:
+Langkah-langkah penanganan penyakit.
 
-Prevention:
-How to prevent the disease.
+Pencegahan:
+Cara mencegah penyakit.
 
-Recovery:
-Can the plant recover or not.
+Pemulihan:
+Apakah tanaman masih bisa pulih atau tidak.
 
-Keep the response concise, practical, clean, and easy to understand.
+Gunakan bahasa yang singkat, jelas, rapi, dan mudah dipahami.
 
-Do not:
-- introduce yourself
-- mention AI
-- mention plant pathologist
-- use markdown symbols
-- use long paragraphs
+Jangan:
+- memperkenalkan diri
+- menyebut AI
+- menyebut plant pathologist
+- menggunakan markdown
+- menggunakan paragraf panjang
 """
 
 
@@ -293,6 +291,29 @@ def root():
     }
 
 
+def split_plant_disease(
+    disease_name: str
+):
+
+    if "Corn" in disease_name:
+
+        return "Jagung", disease_name
+
+    elif "Mango" in disease_name:
+
+        return "Mangga", disease_name
+
+    elif "Potato" in disease_name:
+
+        return "Kentang", disease_name
+
+    elif "Tomato" in disease_name:
+
+        return "Tomat", disease_name
+
+    return "Unknown", disease_name
+
+
 @app.post("/predict")
 async def predict(
     request: PredictRequest
@@ -347,37 +368,95 @@ async def predict(
 
     for index in top_indices:
 
+        disease_name = LABEL_MAPPING.get(
+            class_names[int(index)],
+            class_names[int(index)]
+        )
+
+        plant_name, clean_disease = split_plant_disease(
+            disease_name
+        )
+
         results.append({
 
-            "label":
-            LABEL_MAPPING.get(
-                class_names[int(index)],
-                class_names[int(index)]
-            ),
+            "nama_tanaman":
+            plant_name,
+
+            "nama_penyakit":
+            clean_disease,
+
             "confidence":
             float(predictions[int(index)])
+
         })
 
-    top_label = results[0]["label"]
+    top_result = results[0]
 
-    top_confidence = results[0]["confidence"]
+    top_plant = top_result[
+        "nama_tanaman"
+    ]
+
+    top_disease = top_result[
+        "nama_penyakit"
+    ]
+
+    top_confidence = top_result[
+        "confidence"
+    ]
 
     if top_confidence < 0.5:
 
-        return JSONResponse({
+        response_json = {
 
-            "prediction": "unknown",
+            "nama_tanaman":
+            "Unknown",
 
-            "confidence": top_confidence,
+            "nama_penyakit":
+            "Unknown",
+
+            "confidence":
+            top_confidence,
 
             "message":
-            "Model is not confident enough."
+            (
+                "Model tidak cukup yakin untuk "
+                "mengidentifikasi penyakit. "
+                "Kemungkinan gambar kurang jelas "
+                "atau penyakit tidak tersedia "
+                "di dataset training."
+            )
 
-        })
+        }
+
+        if request.explain:
+
+            response_json[
+                "ai_explanation"
+            ] = (
+                "Silakan upload gambar daun "
+                "yang lebih jelas dengan pencahayaan "
+                "yang baik. Bisa juga penyakit "
+                "tersebut belum tersedia di "
+                "dataset AI saat ini."
+            )
+
+        return JSONResponse(
+            response_json
+        )
 
     response_json = {
 
-        "predictions": results
+        "nama_tanaman":
+        top_plant,
+
+        "nama_penyakit":
+        top_disease,
+
+        "confidence":
+        top_confidence,
+
+        "predictions":
+        results
 
     }
 
@@ -386,7 +465,7 @@ async def predict(
         try:
 
             ai_response = generate_ai_response(
-                top_label
+                top_disease
             )
 
             response_json[
