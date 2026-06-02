@@ -303,7 +303,7 @@ Backend API dideploy menggunakan:
 # Tautan Model ML
 
 ```txt
-https://drive.google.com/drive/folders/1JilmtzoOz2OPEEq22DJTCIZolC5TLUnF?usp=sharing
+https://drive.google.com/drive/folders/1JHwyOMxRCy6K65Hm31MbgUautedTg_9i?usp=sharing
 ```
 
 ---
